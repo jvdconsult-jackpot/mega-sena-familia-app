@@ -199,6 +199,39 @@
             </div>
         </div>
 
+        <!-- Privacidade -->
+        <div id="methodologySection" class="mb-10 p-6 bg-gray-50 rounded-xl shadow-inner border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Declaração de Privacidade e Segurança dos Dados
+            </h2>
+            <div class="space-y-4 text-gray-700">
+                <p>Este documento esclarece a política de uso e tratamento das informações fornecidas por você durante a utilização do aplicativo "Mega-Sena da Família".</p>
+
+                <h3 class="font-semibold text-lg text-blue-600">Zero Coleta de Dados Pessoais</h3>
+                <ul class="list-disc ml-6 space-y-1">
+                    <li>A premissa fundamental deste aplicativo é a privacidade total do usuário.</li>
+                    <li>Afirmamos categoricamente que nenhuma informação inserida nos campos de data de nascimento, nenhuma aposta gerada e nenhum dado de navegação é coletado, armazenado em banco de dados externo ou transmitido para qualquer servidor.</li>
+                </ul>
+
+                <h3 class="font-semibold text-lg text-blue-600">Processamento Client-Side (Local no Navegador)</h3>
+                <p>Todo o ciclo de processamento do aplicativo ocorre exclusivamente no lado do cliente (client-side), ou seja, dentro do seu próprio navegador.</p>
+                <ul class="list-disc ml-6 space-y-1">
+                    <li><strong>Entrada de Dados:</strong> As datas de nascimento são lidas pela função JavaScript para gerar as dezenas.</li>
+                    <li><strong>Cálculo e Análise:</strong> A normalização, combinação e comparação das apostas com o histórico (o qual é buscado em uma API pública da Caixa, e não armazenado permanentemente) são feitas integralmente na sua máquina.</li>
+                    <li><strong>Exclusão Imediata:</strong> Ao fechar ou recarregar a página, todos os dados que você inseriu são apagados da memória do navegador.</li>
+                </ul>
+
+                <h3 class="font-semibold text-lg text-blue-600">Conformidade e Base Legal</h3>
+                <p>Nossa arquitetura de "zero coleta" garante a conformidade com as leis de proteção de dados.</p>
+                <p>Uma vez que o aplicativo não realiza o armazenamento, coleta ou transmissão de dados pessoais, ele está em consonância com os princípios de privacidade por design e minimização de dados exigidos pela Lei Geral de Proteção de Dados (LGPD – Lei nº 13.709/2018).</p>
+				<p>A LGPD brasileira define dados pessoais como aqueles que identificam ou podem identificar uma pessoa natural. Visto que o aplicativo não retém nem exporta as datas fornecidas — tratando-as apenas como input matemático momentâneo para a geração de dezenas — não há tratamento de dados pessoais no sentido legal, garantindo a sua segurança e anonimato.</p>
+				<p>O histórico de concursos da Mega-Sena é obtido diretamente de uma API pública e gratuita (https://www.google.com/search?q=loteriascaixa-api.herokuapp.com) no momento da análise. Esses dados são públicos e não estão ligados à sua identidade.</p>
+            </div>
+        </div>
+
     </div>
 
     <script>
