@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega-Sena da Família</title>
+    <!-- Carrega o Tailwind CSS para estilização moderna e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Configuração de fonte e cores de fundo */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f7f7f7; 
+            
+            /* Novo: Configuração do plano de fundo temático */
+            /* Imagem de prêmios, dinheiro e família feliz em estilo cartoon */
+            background-image: url('https://veja.abril.com.br/wp-content/uploads/2018/02/dinheiro-100-50.jpg?quality=70&strip=info&w=1280&h=720&crop=1');
+            background-size: cover; /* Cobre todo o viewport */
+            background-attachment: fixed; /* Mantém a imagem fixa ao rolar */
+            background-position: center;
+        }
+
+        /* Estilo para garantir que o conteúdo principal se destaque */
+        #app {
+            background-color: rgba(255, 255, 255, 0.95); /* Fundo branco com leve transparência para a imagem de fundo aparecer */
+            backdrop-filter: blur(2px); /* Efeito suave para garantir a leitura */
+        }
+
+        /* Estilo personalizado para os números da aposta */
+        .number-ball {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            color: white;
+            margin: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        /* Cores diferentes para os acertos (ajustadas para Tailwind) */
+        .hit-3 { background-color: #f87171; /* Vermelho claro para Terno */ }
+        .hit-4 { background-color: #fb923c; /* Laranja para Quadra */ }
+        .hit-5 { background-color: #fbbf24; /* Amarelo para Quina */ }
+        .hit-6 { background-color: #10b981; /* Verde esmeralda para Sena */ }
+        .base-color { background-color: #3b82f6; /* Azul padrão */ }
+        
+        /* Estilo para spinner de carregamento */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="app" class="max-w-4xl mx-auto p-6 md:p-10 rounded-xl shadow-2xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-700">Mega-Sena da Família</h1>
+            <p class="mt-2 text-gray-600">Gere 10 apostas de 6 dezenas baseadas nos aniversários de sua famlía</p> 
+			<p class="mt-2 text-gray-600">Os resultados serão comparados com os últimos 100 concursos</p>
+        </header>
+        
+        <!-- Formulário de Entrada de Datas -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="flex flex-col">
+                <label for="datePai" class="text-sm font-medium text-gray-700 mb-1">Niver do Pai</label>
+                <input type="date" id="datePai" class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-700">
+            </div>
+            <div class="flex flex-col">
+                <label for="dateMae" class="text-sm font-medium text-gray-700 mb-1">Niver da Mãe</label>
+                <input type="date" id="dateMae" class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-700">
+            </div>
+            <div class="flex flex-col">
+                <label for="dateEu" class="text-sm font-medium text-gray-700 mb-1">Seu Niver</label>
+                <input type="date" id="dateEu" class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-700">
+            </div>
+            <div class="flex flex-col">
+                <label for="dateFilho" class="text-sm font-medium text-gray-700 mb-1">Niver do Mozão</label>
+                <input type="date" id="dateFilho" class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-700">
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="text-center mb-10 space-y-4 md:space-y-0 md:flex md:justify-center md:space-x-4">
+            <button onclick="runAnalysis()" 
+                    class="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 disabled:bg-gray-400 flex items-center justify-center"
+                    id="analyzeButton">
+                <span id="buttonText">Gerar Apostas e Analisar Histórico</span>
+                <div id="loadingSpinner" class="spinner hidden ml-3"></div>
+            </button>
+            
+            <button onclick="clearScreen()" 
+                    class="w-full md:w-auto px-6 py-3 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition duration-300 disabled:bg-gray-300"
+                    id="clearButton">
+                Limpar Tela
+            </button>
+
+            <button onclick="exportBets()" 
+                    class="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 disabled:bg-gray-300"
+                    id="exportButton" disabled>
+                Exportar Apostas (.txt)
+            </button>
+		</div>
+		
+        <!-- Nova Seção: Metodologia -->
+        <div id="methodologySection" class="mb-10 p-6 bg-gray-50 rounded-xl shadow-inner border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Metodologia de Geração de Apostas
+            </h2>
+            <div class="space-y-4 text-gray-700">
+                <p>A metodologia é projetada para criar um conjunto diversificado de 10 apostas a partir das datas de nascimento fornecidas, combinando **números fixos e derivados** de maneira estruturada para aumentar a cobertura das dezenas.</p>
+
+                <h3 class="font-semibold text-lg text-blue-600">1. Extração e Normalização</h3>
+                <ul class="list-disc ml-6 space-y-1">
+                    <li>Cada uma das quatro datas é decomposta em Dia, Mês e os dois últimos dígitos do Ano, totalizando 12 números base.</li>
+                    <li>Todos os números são submetidos a uma função que os **normaliza** (usando operações matemáticas como Módulo 60) para garantir que caiam no intervalo válido da Mega-Sena (1 a 60).</li>
+                </ul>
+
+                <h3 class="font-semibold text-lg text-blue-600">2. Combinações Estruturadas (10 Lógicas)</h3>
+                <p>Os 12 números base e 4 números derivados (somas e transformações) são combinados em 10 grupos, incluindo:</p>
+                <ul class="list-disc ml-6 space-y-1">
+                    <li><strong>Combinações Diretas:</strong> Usando as dezenas de Pai/Mãe ou Eu/Filho.</li>
+                    <li><strong>Combinações Cruzadas:</strong> Misturando Dia de uma data, Mês de outra, Ano de uma terceira, etc.</li>
+                    <li><strong>Derivados:</strong> Apostas baseadas nas somas dos dias, meses ou anos de todas as datas.</li>
+                    <li><strong>Pools e Faixas:</strong> Uso dos primeiros/últimos números únicos do conjunto total e combinações que distribuem números em diferentes faixas de dezena (ex: 1-10, 11-20, etc.).</li>
+                </ul>
+
+                <h3 class="font-semibold text-lg text-blue-600">3. Validação e Finalização</h3>
+                <p>Garante-se que cada aposta tenha **exatamente 6 dezenas únicas** (1 a 60). Se necessário, a aposta é complementada com números aleatórios guiados até atingir o total de 6.</p>
+            </div>
+        </div>
+		
+		<!-- ÁREA DE DOAÇÃO (PIX) -->
+		<div id="donation-box" class="mt-8 p-6 bg-indigo-50 border-2 border-indigo-300 rounded-xl text-center shadow-lg">
+			<h4 class="text-2xl font-extrabold text-indigo-800 mb-2 flex items-center justify-center">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+					<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-8a1 1 0 102 0v-3a1 1 0 00-2 0v3zM8 11a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM9 13a1 1 0 102 0 1 1 0 00-2 0z" clip-rule="evenodd" />
+				</svg>
+				Gostou da ferramenta? Apoie nosso trabalho!
+			</h4>
+			<p class="text-gray-700 mb-4">O Analisador de Apostas Familiares é gratuito. Sua doação via PIX é **voluntária** e fundamental para mantermos o app no ar e com dados atualizados.</p>
+			
+			<div class="mt-4">
+				<label class="block text-sm font-medium text-gray-700 mb-2">Chave PIX (Copia e Cola)</label>
+				<div class="flex flex-col md:flex-row items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-3">
+					<!-- PIX Code Display -->
+					<input type="text" id="pixCode" readonly 
+						   value="000201261010014br.gov.bcb.pix01366d189084-3ec0-499c-8861-44556f1514c00239MegaSena da Familia agradece sua doacao5204000053039865802BR5924Alberto Magno Assuncao C6009Sao Paulo610901227-20062230519daqr1877925217837936304A459"
+						   class="flex-grow p-3 border border-indigo-400 rounded-lg text-sm bg-white font-mono overflow-auto whitespace-nowrap text-gray-800 focus:ring-indigo-500 focus:border-indigo-500"
+						   onclick="this.select()">
+					
+					<!-- Copy Button -->
+					<button onclick="copyPixCode()" 
+							id="copyPixButton"
+							class="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 transform hover:scale-105">
+						Copiar Chave PIX
+					</button>
+				</div>
+				<p id="copyMessage" class="mt-2 text-sm text-green-600 font-medium hidden">Chave PIX copiada com sucesso! Obrigado por apoiar!</p>
+			</div>
+		</div>
+		<!-- FIM DA ÁREA DE DOAÇÃO -->
+		
+        <!-- Área de Resultados -->
+        <div id="resultsArea" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Apostas Geradas</h2>
+            <div id="generatedBets" class="mb-8 space-y-4">
+                <!-- Apostas geradas serão inseridas aqui -->
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Análise de Acertos (Últimos Concursos)</h2>
+            <div id="analysisResults" class="space-y-6">
+                <!-- Resultados da análise serão inseridos aqui -->
+            </div>
+        </div>
+
+        <!-- Mensagem de Erro/Alerta Personalizada -->
+        <div id="messageBox" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg max-w-sm w-full">
+                <strong class="font-bold">Erro de Entrada!</strong>
+                <span id="errorMessage" class="block sm:inline mt-1"></span>
+                <div class="mt-3 text-right">
+                    <button onclick="hideMessage()" class="text-sm px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Entendi</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let historicalResults = [];
+        let isFetching = false;
+        let currentGeneratedBets = []; // Armazena as apostas geradas para exportação
+        
+        // Variáveis de controle do UI
+        const analyzeButton = document.getElementById('analyzeButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        // Função para mostrar a mensagem de erro
+        function showMessage(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('messageBox').classList.remove('hidden');
+        }
+
+        // Função para esconder a mensagem de erro
+        function hideMessage() {
+            document.getElementById('messageBox').classList.add('hidden');
+        }
+        
+        /**
+         * FUNÇÃO DE COPIA PIX (ADICIONADA)
+         */
+        function copyPixCode() {
+            const pixCodeInput = document.getElementById('pixCode');
+            const copyMessage = document.getElementById('copyMessage');
+
+            // Seleciona o texto no campo
+            pixCodeInput.select();
+            pixCodeInput.setSelectionRange(0, 99999); // Para mobile
+
+            try {
+                // Usa o método antigo (document.execCommand('copy')) que é mais confiável em iframes
+                document.execCommand('copy');
+                
+                // Exibe mensagem de sucesso
+                copyMessage.classList.remove('hidden');
+                setTimeout(() => {
+                    copyMessage.classList.add('hidden');
+                }, 3000);
+
+            } catch (err) {
+                console.error('Falha ao copiar o texto: ', err);
+                // Fallback: caso a cópia falhe, avisa para o usuário copiar manualmente
+                showMessage('Não foi possível copiar automaticamente a chave PIX. Por favor, copie manualmente o texto do campo.');
+            }
+        }
+        // FIM DA FUNÇÃO DE COPIA PIX
+
+
+        /**
+         * Lógica para limpar a tela e resetar o estado.
+         */
+        function clearScreen() {
+            // Limpa inputs de data
+            document.getElementById('datePai').value = '';
+            document.getElementById('dateMae').value = '';
+            document.getElementById('dateEu').value = '';
+            document.getElementById('dateFilho').value = '';
+
+            // Limpa resultados
+            document.getElementById('generatedBets').innerHTML = '';
+            document.getElementById('analysisResults').innerHTML = '';
+            document.getElementById('resultsArea').classList.add('hidden');
+            
+            // Reseta estado global e botões
+            document.getElementById('exportButton').disabled = true;
+            analyzeButton.disabled = false;
+            loadingSpinner.classList.add('hidden');
+            buttonText.textContent = 'Gerar Apostas e Analisar Histórico REAL';
+            currentGeneratedBets = [];
+            historicalResults = [];
+        }
+
+        /**
+         * Lógica para exportar as apostas geradas para um arquivo .txt.
+         */
+        function exportBets() {
+            if (currentGeneratedBets.length === 0) {
+                showMessage('Nenhuma aposta gerada para exportar. Por favor, analise primeiro.');
+                return;
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            let fileContent = `Apostas Mega-Sena geradas em ${today}\n`;
+            fileContent += `Baseado em ${currentGeneratedBets.length} apostas geradas a partir das datas de nascimento.\n\n`;
+
+            currentGeneratedBets.forEach((bet, index) => {
+                // Formata os números com dois dígitos e separa por vírgula
+                const numbers = bet.map(n => String(n).padStart(2, '0')).join(', ');
+                fileContent += `Aposta ${index + 1}: ${numbers}\n`;
+            });
+
+            // Cria um Blob e dispara o download do arquivo
+            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `mega-sena-apostas-${today}.txt`;
+            
+            // Simula o clique para iniciar o download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href); // Libera o objeto URL
+        }
+
+
+        /**
+         * Normaliza um número para o intervalo de 1 a 60, garantindo unicidade.
+         * @param {number} num - O número a ser normalizado.
+         * @returns {number} O número normalizado entre 1 e 60.
+         */
+        function normalizeNumber(num) {
+            let n = Math.floor(Math.abs(num));
+            // Lógica de redução/transformação para manter o número no intervalo 1-60
+            while (n > 60 || n === 0) {
+                // Se for zero, volta para 1
+                if (n === 0) {
+                    n = 1;
+                // Se for maior que 60, usa Módulo 60 e soma 1 (para evitar 0)
+                } else { 
+                    n = (n % 60) + 1;
+                }
+            }
+            return n;
+        }
+
+        /**
+         * Extrai 3 números base (Dia, Mês, Últimos 2 Dígitos do Ano) de uma data.
+         * @param {string} dateString - Data no formato YYYY-MM-DD.
+         * @returns {number[]} Array de 3 números base.
+         */
+        function extractBaseNumbers(dateString) {
+            if (!dateString) return [];
+            // Adiciona T00:00:00 para evitar problemas de fuso horário
+            const date = new Date(dateString + 'T00:00:00'); 
+            const day = date.getDate();
+            const month = date.getMonth() + 1; // Mês é 0-11
+            const year = date.getFullYear() % 100; // Últimos 2 dígitos do ano
+
+            return [normalizeNumber(day), normalizeNumber(month), normalizeNumber(year)];
+        }
+
+        /**
+         * Gera 10 apostas balanceadas de 6 números (1-60) a partir das 4 datas.
+         * @param {string[]} dates - Array de 4 strings de data (Pai, Mãe, Eu, Filho).
+         * @returns {number[][]} Array de 10 apostas.
+         */
+        function generateBets(dates) {
+            const [datePai, dateMae, dateEu, dateFilho] = dates;
+
+            const N1 = extractBaseNumbers(datePai); // [dP, mP, aP]
+            const N2 = extractBaseNumbers(dateMae); // [dM, mM, aM]
+            const N3 = extractBaseNumbers(dateEu);  // [dE, mE, aE]
+            const N4 = extractBaseNumbers(dateFilho); // [dF, mF, aF]
+            
+            // Verifica se as datas foram extraídas corretamente
+            if (N1.length === 0 || N2.length === 0 || N3.length === 0 || N4.length === 0) {
+                return [];
+            }
+
+            // Todos os 12 números base, normalizados e únicos.
+            let allBaseNumbers = [...N1, ...N2, ...N3, ...N4];
+            allBaseNumbers = Array.from(new Set(allBaseNumbers.filter(n => n > 0 && n <= 60))).sort((a, b) => a - b);
+            
+            // Números derivados
+            const D1 = normalizeNumber(N1[0] + N2[0] + N3[0] + N4[0]); // Soma dos dias
+            const D2 = normalizeNumber(N1[1] + N2[1] + N3[1] + N4[1]); // Soma dos meses
+            const D3 = normalizeNumber(N1[2] + N2[2] + N3[2] + N4[2]); // Soma dos anos
+            const D4 = normalizeNumber(allBaseNumbers.reduce((sum, n) => sum + n, 0)); // Soma total dos números base
+
+            let bets = [];
+
+            // 1. Combinação Direta 1 (Pai & Mãe)
+            bets.push([...N1, ...N2].slice(0, 6));
+
+            // 2. Combinação Direta 2 (Eu & Filho)
+            bets.push([...N3, ...N4].slice(0, 6));
+
+            // 3. Combinação Cruzada (Dia Pai, Mês Mãe, Ano Eu, Dia Filho, Mês Eu, Ano Mãe)
+            bets.push([N1[0], N2[1], N3[2], N4[0], N3[1], N2[2]].slice(0, 6));
+
+            // 4. Transformações Simples (Usando derivados)
+            bets.push([D1, D2, D3, D4, normalizeNumber(D1 + D2), normalizeNumber(D3 - D4)]);
+
+            // 5. Combinação do Pool (Os 6 primeiros do pool total)
+            bets.push(allBaseNumbers.slice(0, 6));
+
+            // 6. Combinação do Pool (Os 6 últimos do pool total)
+            if (allBaseNumbers.length >= 6) {
+                bets.push(allBaseNumbers.slice(-6));
+            } else {
+                 // Complementa se houver menos de 6 únicos
+                const complement = Array.from({ length: 6 - allBaseNumbers.length }, (_, i) => normalizeNumber(allBaseNumbers.length + 10 + i * 5));
+                bets.push([...allBaseNumbers, ...complement]);
+            }
+
+            // 7. Bet por Soma de Dígitos (Soma de todos os dígitos das datas)
+            const S1 = normalizeNumber(D4 + 5);
+            const S2 = normalizeNumber(D4 + 10);
+            const S3 = normalizeNumber(D4 * 2);
+            bets.push([S1, S2, S3, N1[0], N2[0], N3[0]]);
+
+            // 8. Bet por Faixas (Um número em cada dezena: 1-10, 11-20, etc.)
+            const F1 = normalizeNumber(N1[0]);
+            const F2 = normalizeNumber(N2[1] + 10);
+            const F3 = normalizeNumber(N3[2] + 20);
+            const F4 = normalizeNumber(N4[0] + 30);
+            const F5 = normalizeNumber(N1[1] + 40);
+            const F6 = normalizeNumber(N2[2] + 50);
+            bets.push([F1, F2, F3, F4, F5, F6]);
+
+            // 9. Bet de Opostos (Números fixos + transformações)
+            const O1 = normalizeNumber(60 - N1[0]);
+            const O2 = normalizeNumber(60 - N2[1]);
+            bets.push([O1, O2, N3[2], D1, D3, N4[0]]);
+
+            // 10. Bet Aleatória Guiada
+            const M1 = normalizeNumber(Math.floor(Math.random() * 60) + 1);
+            const M2 = normalizeNumber(M1 + N1[0]);
+            bets.push([M1, M2, D2, N4[1], normalizeNumber(M1 * 2), normalizeNumber(D2 + N4[1])]);
+
+            
+            // Pega as 10 primeiras e garante que todas tenham 6 números únicos entre 1 e 60
+            const finalBets = bets.map(bet => {
+                let uniqueBet = Array.from(new Set(bet.map(normalizeNumber).filter(n => n > 0 && n <= 60))).sort((a, b) => a - b);
+                
+                // Complementa para 6 números se faltar
+                while (uniqueBet.length < 6) {
+                    const randomNum = normalizeNumber(Math.floor(Math.random() * 60) + 1);
+                    if (!uniqueBet.includes(randomNum)) {
+                        uniqueBet.push(randomNum);
+                    }
+                    uniqueBet.sort((a, b) => a - b);
+                }
+                return uniqueBet.slice(0, 6);
+            });
+
+            // Remove duplicatas de apostas completas
+            const uniqueFinalBets = [];
+            const betSet = new Set();
+            for (const bet of finalBets) {
+                const betKey = bet.join('-');
+                if (!betSet.has(betKey)) {
+                    betSet.add(betKey);
+                    uniqueFinalBets.push(bet);
+                }
+            }
+            
+            return uniqueFinalBets.slice(0, 10); // Retorna no máximo 10 apostas
+        }
+
+        /**
+         * Busca os resultados históricos da Mega-Sena usando uma API externa.
+         * @returns {Promise<Object[]>} Array de resultados (concurso, data, dezenas).
+         */
+        async function fetchHistoricalResults() {
+            const URL_BASE = "https://loteriascaixa-api.herokuapp.com/api/megasena";
+            
+            try {
+                // 1. Busca o último concurso para saber o número de onde começar a busca
+                const latestResponse = await fetch(`${URL_BASE}/latest`);
+                const latestData = await latestResponse.json();
+                
+                if (!latestData || !latestData.concurso) {
+                    throw new Error("Não foi possível obter o último concurso.");
+                }
+
+                const lastContestNumber = parseInt(latestData.concurso);
+                if (isNaN(lastContestNumber)) {
+                     throw new Error("Número do concurso inválido.");
+                }
+                
+                // 2. Define o número de concursos a buscar (ex: 100)
+                const NUM_CONTESTS_TO_FETCH = 100;
+                const startContest = Math.max(1, lastContestNumber - NUM_CONTESTS_TO_FETCH + 1);
+
+                const results = [];
+                
+                // 3. Itera para buscar os últimos concursos (do mais antigo para o mais novo)
+                for (let i = startContest; i <= lastContestNumber; i++) {
+                    const contestUrl = `${URL_BASE}/${i}`;
+                    // Adiciona um pequeno delay para evitar sobrecarregar a API pública
+                    await new Promise(resolve => setTimeout(resolve, 50)); 
+                    
+                    const response = await fetch(contestUrl);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.dezenas) {
+                            // Mapeia para o formato que precisamos
+                            const parsedNumbers = data.dezenas.map(d => parseInt(d)).filter(n => !isNaN(n));
+                            if (parsedNumbers.length === 6) {
+                                results.push({
+                                    concurso: data.concurso,
+                                    data: data.data,
+                                    numbers: parsedNumbers
+                                });
+                            }
+                        }
+                    } else {
+                        // Ignora concursos que falham (pode ser um número de concurso inexistente)
+                        console.warn(`Aviso: Falha ao buscar concurso ${i}. Status: ${response.status}`);
+                    }
+                    
+                    // Atualiza o texto do botão para dar feedback ao usuário
+                    buttonText.textContent = `Buscando resultados: ${results.length}/${NUM_CONTESTS_TO_FETCH} (Concurso ${i})`;
+                }
+
+                buttonText.textContent = `Busca histórica finalizada (${results.length} resultados).`;
+                return results;
+
+            } catch (error) {
+                console.error("Erro na busca de dados históricos:", error);
+                buttonText.textContent = `Erro na busca. Tente novamente.`;
+                showMessage(`Erro ao buscar resultados da Mega-Sena: ${error.message}. Por favor, tente novamente.`);
+                return [];
+            }
+        }
+
+
+        /**
+         * Compara uma aposta com um resultado sorteado e retorna o número de acertos.
+         * @param {number[]} bet - A aposta de 6 números.
+         * @param {number[]} result - Os 6 números sorteados.
+         * @returns {number} O número de acertos.
+         */
+        function countHits(bet, result) {
+            const resultSet = new Set(result);
+            return bet.filter(n => resultSet.has(n)).length;
+        }
+
+        /**
+         * Renderiza uma aposta como bolinhas coloridas.
+         * @param {number[]} bet - A aposta.
+         * @param {number[]} hitNumbers - Números que acertaram o sorteio (opcional).
+         * @param {string} baseColorClass - Classe de cor base (ex: 'bg-blue-600').
+         * @returns {string} O HTML para a aposta.
+         */
+        function renderBet(bet, hitNumbers = [], baseColorClass = 'bg-blue-600') {
+            return bet.map(num => {
+                const isHit = hitNumbers.includes(num);
+                const colorClass = isHit ? 'bg-green-500 ring-4 ring-green-300' : baseColorClass;
+                return `<div class="number-ball ${colorClass}">${String(num).padStart(2, '0')}</div>`;
+            }).join('');
+        }
+
+        /**
+         * Função principal para executar a geração e análise das apostas.
+         */
+        async function runAnalysis() {
+            if (isFetching) return; // Evita cliques múltiplos
+
+            const datePai = document.getElementById('datePai').value;
+            const dateMae = document.getElementById('dateMae').value;
+            const dateEu = document.getElementById('dateEu').value;
+            const dateFilho = document.getElementById('dateFilho').value;
+
+            const dates = [datePai, dateMae, dateEu, dateFilho];
+
+            if (!dates.every(d => d)) {
+                showMessage('Por favor, preencha todas as 4 datas para realizar a análise completa.');
+                return;
+            }
+            
+            // 1. Ligar o loading
+            isFetching = true;
+            analyzeButton.disabled = true;
+            document.getElementById('exportButton').disabled = true; // Desabilita exportar durante a busca
+            loadingSpinner.classList.remove('hidden');
+            buttonText.textContent = 'Buscando resultados recentes...';
+            document.getElementById('resultsArea').classList.add('hidden');
+            document.getElementById('analysisResults').innerHTML = '';
+            
+            // 2. Buscar resultados reais
+            historicalResults = await fetchHistoricalResults();
+            
+            // 3. Desligar o loading
+            isFetching = false;
+            analyzeButton.disabled = false;
+            loadingSpinner.classList.add('hidden');
+            buttonText.textContent = 'Gerar Apostas e Analisar Histórico REAL';
+
+            if (historicalResults.length === 0) {
+                // Se a busca falhar, não habilita a exportação
+                showMessage('Não foi possível carregar os resultados históricos. Tente novamente mais tarde.');
+                return;
+            }
+            
+            // 4. Gerar Apostas
+            const generatedBets = generateBets(dates);
+            currentGeneratedBets = generatedBets; // Armazena globalmente
+            document.getElementById('exportButton').disabled = false; // Habilita o botão de exportar
+            
+            const generatedBetsDiv = document.getElementById('generatedBets');
+            const analysisResultsDiv = document.getElementById('analysisResults');
+            const resultsArea = document.getElementById('resultsArea');
+
+            // Mostrar Apostas Geradas
+            generatedBetsDiv.innerHTML = generatedBets.map((bet, index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition duration-200">
+                    <span class="font-mono text-gray-500 w-16">Aposta ${index + 1}:</span>
+                    <div class="flex flex-wrap justify-end">
+                        ${renderBet(bet)}
+                    </div>
+                </div>
+            `).join('');
+
+            // 5. Realizar Análise Histórica (usando dados reais)
+            let totalQuadras = 0;
+            let totalTernos = 0;
+            let totalQuinas = 0;
+            let totalSenas = 0;
+
+            generatedBets.forEach((bet, betIndex) => {
+                let betAnalysisHtml = `<div class="p-4 rounded-xl border border-gray-200">
+                    <h3 class="text-lg font-semibold text-blue-700 mb-2">Aposta ${betIndex + 1}: <span class="text-sm font-normal text-gray-500">${bet.map(n => String(n).padStart(2, '0')).join(', ')}</span></h3>
+                    <div class="space-y-3">`;
+
+                let foundHits = false;
+
+                historicalResults.forEach(result => {
+                    const hits = countHits(bet, result.numbers);
+                    
+                    if (hits >= 3) {
+                        foundHits = true;
+                        
+                        const hitNumbers = bet.filter(n => result.numbers.includes(n));
+                        let resultClass = '';
+                        let prizeName = '';
+
+                        if (hits === 3) { resultClass = 'hit-3'; totalTernos++; prizeName = 'Terno'; }
+                        if (hits === 4) { resultClass = 'hit-4'; totalQuadras++; prizeName = 'Quadra'; }
+                        if (hits === 5) { resultClass = 'hit-5'; totalQuinas++; prizeName = 'Quina!'; }
+                        if (hits === 6) { resultClass = 'hit-6'; totalSenas++; prizeName = 'SENA!!!'; }
+
+
+                        betAnalysisHtml += `
+                            <div class="p-3 bg-opacity-10 rounded-md shadow-md" style="background-color: ${resultClass};">
+                                <p class="font-bold text-gray-900 flex items-center mb-2">
+                                    <span class="mr-2 text-xl">${prizeName} (${hits} Acertos!)</span>
+                                </p>
+                                <p class="text-sm text-gray-800 mb-2">Concurso ${result.concurso} (${result.data}): Sorteados: ${result.numbers.map(n => String(n).padStart(2, '0')).join(', ')}</p>
+                                <div class="flex flex-wrap">
+                                    ${renderBet(bet, hitNumbers, 'bg-gray-600')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                if (!foundHits) {
+                    betAnalysisHtml += `<p class="text-gray-500 italic">Nenhum acerto de 3 ou mais dezenas encontrado nesta aposta.</p>`;
+                }
+
+                betAnalysisHtml += `</div></div>`;
+                analysisResultsDiv.innerHTML += betAnalysisHtml;
+            });
+            
+            // 6. Resumo da Análise
+            const summaryHTML = `
+                <div class="mt-8 p-6 bg-yellow-50 border-yellow-300 border-2 rounded-xl text-center shadow-lg">
+                    <h3 class="text-xl font-extrabold text-yellow-800 mb-2">RESUMO DA ANÁLISE HISTÓRICA REAL</h3>
+                    <p class="text-gray-700 text-lg">
+                        Total de **SENAS (6 acertos)** encontradas: <span class="font-extrabold text-green-600">${totalSenas}</span>
+                        <br>
+                        Total de **Quinas (5 acertos)** encontradas: <span class="font-extrabold text-yellow-600">${totalQuinas}</span>
+                        <br>
+                        Total de **Quadras (4 acertos)** encontradas: <span class="font-extrabold text-orange-600">${totalQuadras}</span>
+                        <br>
+                        Total de **Ternos (3 acertos)** encontrados: <span class="font-extrabold text-red-600">${totalTernos}</span>
+                    </p>
+                    <p class="mt-3 text-sm text-gray-600">A análise foi feita com base nos **últimos ${historicalResults.length} concursos** da Mega-Sena. Resultados ${historicalResults.length > 0 ? `do concurso ${historicalResults[0].concurso} até o ${historicalResults[historicalResults.length - 1].concurso}` : 'não disponíveis'}.</p>
+                </div>
+            `;
+            analysisResultsDiv.insertAdjacentHTML('afterbegin', summaryHTML);
+
+            resultsArea.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
